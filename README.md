@@ -1,114 +1,145 @@
 # FaceNet Real-Time Attendance System
 
-A real-time face recognition attendance system using FaceNet and PyTorch. The system uses a pre-trained FaceNet model fine-tuned on your student dataset for accurate face recognition.
+A real-time face recognition attendance system built with FaceNet (Inception-ResNet-V1), PyTorch, and OpenCV, leveraging fine-tuned VGGFace2 pretrained model with custom feature processing and data augmentation pipeline.
 
-## Quick Start (Automated)
+## Table of Contents
 
-### Dependencies
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Technical Details](#technical-details)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+### Core Functionality
+
+- Real-time face detection using MTCNN
+- Face recognition with fine-tuned FaceNet model
+- Automated attendance logging with CSV export
+- Student information management system
+- Real-time visual feedback and confidence scores
+
+### Technical Features
+
+- Custom feature processing pipeline
+- Multi-loss training (Softmax + Center Loss + Triplet Loss)
+- Extensive data augmentation for robustness
+- Early stopping and learning rate scheduling
+- Model checkpointing and best model saving
+
+## Installation
+
+### Prerequisites
+
+- Python 3.8 or higher
+- CUDA-capable GPU (recommended)
+- Webcam for attendance capture
+
+### Setup
+
+1. Clone the repository:
+
+```bash
+git clone [repository-url]
+cd FaceNet-RealTime-Attendance
+```
+
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
-The easiest way to set up and train the system is using the automated pipeline:
+
+## Usage
+
+### Automated Pipeline
 
 ```bash
-python run.py
+python run.py  # Runs complete pipeline
 ```
 
-This will:
+### Manual Setup
 
-1. Clean previous processed data and models
-2. Preprocess all student images
-3. Train the face recognition model
-4. Save the best model automatically
+1. **Preprocess Images**
 
-After training completes, run the attendance system:
+```bash
+python src/preprocess.py
+```
+
+2. **Train Model**
+
+```bash
+python src/train.py
+```
+
+3. **Run Attendance System**
 
 ```bash
 python src/attendance.py
 ```
 
-## Manual Setup (Step by Step)
+## Technical Details
 
-If you prefer more control, you can run each step manually:
+### Model Architecture
 
-### Dependencies
+- **Base Model**: FaceNet (Inception-ResNet-V1)
+- **Pretrained**: VGGFace2
+- **Custom Layers**:
+  - Feature Processing Pipeline
+  - Batch Normalization
+  - Dropout (0.7, 0.5)
+  - Custom Classifier
 
-```bash
-pip install -r requirements.txt
-```
+### Training Parameters
 
-1. **Preprocess Images**
+- Batch Size: 16
+- Learning Rate: 1e-3 (feature processor), 1e-4 (backbone)
+- Weight Decay: 5e-4
+- Validation Split: 20%
+- Early Stopping Patience: 8 epochs
 
-   ```bash
-   python src/preprocess.py
-   ```
+### Loss Functions
 
-   - Detects and aligns faces
-   - Creates standardized face images in `processed_dataset/`
+- Cross Entropy Loss (main classification)
+- Center Loss (feature clustering)
+- Triplet Loss (margin: 0.3)
 
-2. **Train Model**
+### Data Augmentation
 
-   ```bash
-   python src/train.py
-   ```
+- Geometric: rotation, scale, shift
+- Lighting: brightness, contrast, gamma
+- Environmental: shadows, fog
+- Noise: Gaussian noise, blur
+- Color: hue, saturation, value
 
-   - Fine-tunes FaceNet on your dataset
-   - Saves best model to `models/best_model.pth`
-   - Training progress shown in real-time
+### Recognition Parameters
 
-3. **Run Attendance System**
-   ```bash
-   python src/attendance.py
-   ```
-   - Opens webcam for real-time recognition
-   - Shows student ID and name
-   - Saves attendance to CSV files
+- Confidence Threshold: 0.3
+- Margin Threshold: 0.1
+- Detection Cooldown: 30 seconds
+- Face Detection Parameters:
+  - Margin: 20
+  - Min Face Size: 50
+  - MTCNN Thresholds: [0.5, 0.6, 0.6]
 
-## System Requirements
-
-- Python 3.8 or higher
-- CUDA-capable GPU (recommended)
-- Webcam for attendance
-
-## Model Architecture
-
-- Base: FaceNet (Inception-ResNet-V1)
-- Pretrained on VGGFace2
-- Fine-tuned classifier for student recognition
-- Optimized for real-time performance
-
-## Training Details
-
-- Data augmentation for better generalization
-- Early stopping to prevent overfitting
-- Learning rate scheduling
-- Validation split: 20%
-- Batch size: 32
-
-## Attendance Features
-
-- Real-time face detection and recognition
-- Confidence threshold: 0.92
-- 30-second cooldown between recognitions
-- Daily attendance logs in CSV format
-- Student information display
-- Easy to use interface
-
-
-## File Structure
+## Project Structure
 
 ```
 .
 ├── dataset/                  # Raw student images
 ├── processed_dataset/        # Preprocessed face images
 ├── models/                   # Trained models
-├── attendance/              # Attendance records
-├── logs/                    # Training logs
+│   └── best_model.pth        # Best model checkpoint
+├── attendance/               # Attendance records
+├── logs/                     # Preprocessing and Training logs
 ├── src/
-│   ├── preprocess.py       # Face detection & alignment
-│   ├── train.py           # Model training
-│   └── attendance.py      # Real-time recognition
+│   ├── preprocess.py       # Face detection & augmentation
+│   ├── train.py           # Model training pipeline
+│   ├── attendance.py      # Real-time recognition system
+│   └── student_info.py    # Student data management
 ├── run.py                  # Automated pipeline
 └── requirements.txt        # Dependencies
 ```
