@@ -4,6 +4,11 @@ A real-time face recognition attendance system using FaceNet and PyTorch. The sy
 
 ## Quick Start (Automated)
 
+## Dependencies
+
+```bash
+pip install -r requirements.txt
+```
 The easiest way to set up and train the system is using the automated pipeline:
 
 ```bash
@@ -27,25 +32,13 @@ python src/attendance.py
 
 If you prefer more control, you can run each step manually:
 
-1. **Prepare Dataset**
+## Dependencies
 
-   ```
-   dataset/
-   ├── 210042106_Student_Name/
-   │   ├── image1.jpg
-   │   ├── image2.jpg
-   │   └── ...
-   ├── 210042107_Another_Student/
-   │   ├── image1.jpg
-   │   └── ...
-   └── ...
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-   - Add 5-10 clear face images per student
-   - Name folders as: `StudentID_Full_Name`
-   - Supported formats: `.jpg`, `.jpeg`, `.png`
-
-2. **Preprocess Images**
+1. **Preprocess Images**
 
    ```bash
    python src/preprocess.py
@@ -54,7 +47,7 @@ If you prefer more control, you can run each step manually:
    - Detects and aligns faces
    - Creates standardized face images in `processed_dataset/`
 
-3. **Train Model**
+2. **Train Model**
 
    ```bash
    python src/train.py
@@ -64,7 +57,7 @@ If you prefer more control, you can run each step manually:
    - Saves best model to `models/best_model.pth`
    - Training progress shown in real-time
 
-4. **Run Attendance System**
+3. **Run Attendance System**
    ```bash
    python src/attendance.py
    ```
@@ -108,26 +101,6 @@ pip install -r requirements.txt
 - Student information display
 - Easy to use interface
 
-## Troubleshooting
-
-1. **Poor Recognition**
-
-   - Ensure good lighting
-   - Keep face clearly visible
-   - Add more training images
-   - Retrain the model
-
-2. **Training Issues**
-
-   - Check GPU availability
-   - Verify dataset structure
-   - Ensure clean dataset
-   - Monitor validation accuracy
-
-3. **System Performance**
-   - Lower resolution if needed
-   - Update GPU drivers
-   - Close other GPU applications
 
 ## File Structure
 
@@ -145,28 +118,6 @@ pip install -r requirements.txt
 ├── run.py                  # Automated pipeline
 └── requirements.txt        # Dependencies
 ```
-
-## Best Practices
-
-1. **Image Collection**
-
-   - Use clear, well-lit photos
-   - Include different angles
-   - Avoid extreme expressions
-   - Minimum 5 images per student
-
-2. **Training**
-
-   - Let training complete naturally
-   - Monitor validation accuracy
-   - Save best performing model
-   - Use GPU if available
-
-3. **Attendance**
-   - Good lighting conditions
-   - Face camera directly
-   - Keep steady position
-   - Check confidence scores
 
 ## License
 
