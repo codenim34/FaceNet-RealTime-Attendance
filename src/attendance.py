@@ -39,11 +39,11 @@ class FaceRecognitionSystem:
         
         # Load MTCNN for face detection
         self.mtcnn = MTCNN(
-            image_size=160,  # Same size as our training
-            margin=20,       # Add margin around face
-            keep_all=False,  # Only detect one face
-            min_face_size=20,# Minimum face size to detect
-            post_process=True,# Normalize the face
+            image_size=160,
+            margin=40,       # Increased margin for better face capture
+            keep_all=False,
+            min_face_size=80,# Increased minimum face size
+            post_process=True,
             device=self.device
         )
         
@@ -86,11 +86,22 @@ class FaceRecognitionSystem:
             
             # Get prediction
             with torch.no_grad():
-                output = self.model(face)
+                # Get embeddings from backbone
+                embeddings = self.model.backbone(face)
+                
+                # Get classifier output
+                output = self.model.classifier(embeddings)
                 probabilities = torch.nn.functional.softmax(output, dim=1)
                 confidence, predicted = torch.max(probabilities, 1)
                 
-                if confidence.item() > 0.8:  # Confidence threshold
+                # Check if the highest probability is significantly higher than the second highest
+                sorted_probs, _ = torch.sort(probabilities, dim=1, descending=True)
+                prob_diff = sorted_probs[0][0] - sorted_probs[0][1]
+                
+                # Only accept if:
+                # 1. Confidence is very high (>0.92)
+                # 2. The difference between top two probabilities is significant (>0.5)
+                if confidence.item() > 0.92 and prob_diff > 0.5:
                     folder_name = self.class_names[predicted.item()]
                     student = self.get_student_info(folder_name)
                     if student:
