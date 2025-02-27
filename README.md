@@ -9,7 +9,6 @@ A real-time face recognition attendance system built with FaceNet (Inception-Res
 - [Usage](#usage)
 - [Technical Details](#technical-details)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Features
