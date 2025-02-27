@@ -16,33 +16,54 @@ class FaceRecognitionModel(nn.Module):
         # Load the pretrained FaceNet model
         self.backbone = InceptionResnetV1(pretrained='vggface2', classify=False)
         
-        # Add our own classifier
-        self.classifier = nn.Sequential(
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
+        # Feature processing
+        self.feature_processor = nn.Sequential(
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.7),
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(256, num_classes)
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.5)
         )
         
-    def forward(self, x):
-        # Get embeddings from the backbone
+        # Classifier
+        self.classifier = nn.Linear(512, num_classes)
+        
+        # Initialize weights
+        nn.init.xavier_uniform_(self.feature_processor[2].weight)
+        nn.init.zeros_(self.feature_processor[2].bias)
+        nn.init.xavier_uniform_(self.classifier.weight)
+        nn.init.zeros_(self.classifier.bias)
+        
+    def forward(self, x, return_embeddings=False):
+        # Get backbone features
         embeddings = self.backbone(x)
-        # Apply our classifier
-        x = self.classifier(embeddings)
-        return x
+        
+        # L2 normalize embeddings
+        embeddings = nn.functional.normalize(embeddings, p=2, dim=1)
+        
+        # Process features
+        processed_embeddings = self.feature_processor(embeddings)
+        
+        if return_embeddings:
+            return processed_embeddings
+            
+        # Get classification output
+        return self.classifier(processed_embeddings)
 
 class FaceRecognitionSystem:
     def __init__(self, model_path='models/best_model.pth'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"Using device: {self.device}")
         
-        # Load MTCNN for face detection
+        # Load MTCNN for face detection with more sensitive parameters
         self.mtcnn = MTCNN(
             image_size=160,
-            margin=40,       # Increased margin for better face capture
+            margin=20,        # Reduced margin
+            min_face_size=50, # Reduced minimum face size
+            thresholds=[0.5, 0.6, 0.6],  # Lower detection thresholds
+            factor=0.709,
             keep_all=False,
-            min_face_size=80,# Increased minimum face size
             post_process=True,
             device=self.device
         )
@@ -75,42 +96,99 @@ class FaceRecognitionSystem:
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
         try:
-            # Detect and align face
-            face = self.mtcnn(Image.fromarray(frame_rgb))
+            # Detect and align face with bounding boxes
+            face, prob = self.mtcnn.detect(Image.fromarray(frame_rgb))
             
-            if face is None:
-                return None, None, None
+            if face is not None:
+                # Draw rectangle around the face
+                box = face[0]
+                box = [int(b) for b in box]
+                cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
                 
-            # The face is already a tensor and normalized by MTCNN
-            face = face.unsqueeze(0).to(self.device)
-            
-            # Get prediction
-            with torch.no_grad():
-                # Get embeddings from backbone
-                embeddings = self.model.backbone(face)
+                # Add detection probability
+                cv2.putText(frame, f"Detection: {prob[0]:.2f}", 
+                          (box[0], box[1] - 10), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 
-                # Get classifier output
-                output = self.model.classifier(embeddings)
-                probabilities = torch.nn.functional.softmax(output, dim=1)
-                confidence, predicted = torch.max(probabilities, 1)
+                # Get aligned face
+                face = self.mtcnn(Image.fromarray(frame_rgb))
                 
-                # Check if the highest probability is significantly higher than the second highest
-                sorted_probs, _ = torch.sort(probabilities, dim=1, descending=True)
-                prob_diff = sorted_probs[0][0] - sorted_probs[0][1]
+                if face is None:
+                    cv2.putText(frame, "Face alignment failed", (50, 100),
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                    return None, None, None
+                    
+                # The face is already a tensor and normalized by MTCNN
+                face = face.unsqueeze(0).to(self.device)
                 
-                # Only accept if:
-                # 1. Confidence is very high (>0.92)
-                # 2. The difference between top two probabilities is significant (>0.5)
-                if confidence.item() > 0.92 and prob_diff > 0.5:
-                    folder_name = self.class_names[predicted.item()]
-                    student = self.get_student_info(folder_name)
-                    if student:
-                        return student, confidence.item(), folder_name
+                # Normalize using ImageNet stats to match training
+                normalize = transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                )
+                face = normalize(face)
+                
+                # Get prediction
+                with torch.no_grad():
+                    # Get embeddings and process features
+                    embeddings = self.model.backbone(face)
+                    embeddings = nn.functional.normalize(embeddings, p=2, dim=1)
+                    processed_embeddings = self.model.feature_processor(embeddings)
+                    
+                    # Get classifier output
+                    output = self.model.classifier(processed_embeddings)
+                    probabilities = torch.nn.functional.softmax(output, dim=1)
+                    
+                    # Get top-3 predictions and their probabilities
+                    top_probs, top_indices = torch.topk(probabilities, min(3, len(self.class_names)))
+                    top_probs = top_probs[0].cpu().numpy()
+                    top_indices = top_indices[0].cpu().numpy()
+                    
+                    # Display top-3 predictions
+                    y_offset = 120
+                    cv2.putText(frame, "Top matches:", (50, y_offset),
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    
+                    for i in range(len(top_indices)):
+                        class_name = self.class_names[top_indices[i]]
+                        prob = top_probs[i]
+                        text = f"{class_name}: {prob:.2f}"
+                        y_offset += 30
+                        cv2.putText(frame, text, (50, y_offset),
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    
+                    confidence = top_probs[0]
+                    margin = top_probs[0] - top_probs[1] if len(top_probs) > 1 else 1.0
+                    
+                    # Display thresholds
+                    y_offset += 40
+                    cv2.putText(frame, f"Confidence threshold (0.3): {confidence:.2f}", 
+                              (50, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7, 
+                              (0, 255, 0) if confidence > 0.3 else (0, 0, 255), 2)
+                    
+                    y_offset += 30
+                    cv2.putText(frame, f"Margin threshold (0.1): {margin:.2f}", 
+                              (50, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                              (0, 255, 0) if margin > 0.1 else (0, 0, 255), 2)
+                    
+                    # More lenient recognition criteria for testing
+                    if confidence > 0.3 and margin > 0.1:  # Much lower thresholds for testing
+                        folder_name = self.class_names[top_indices[0]]
+                        student = self.get_student_info(folder_name)
+                        if student:
+                            return student, confidence, folder_name
+                    
+            else:
+                cv2.putText(frame, "No face detected by MTCNN", (50, 100),
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                
         except Exception as e:
             print(f"Error in face recognition: {str(e)}")
+            cv2.putText(frame, f"Error: {str(e)}", (50, 100),
+                      cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         
         return None, None, None
-    
+
     def mark_attendance(self, student: StudentInfo, folder_name: str):
         current_time = datetime.datetime.now()
         
@@ -157,9 +235,9 @@ class FaceRecognitionSystem:
             print("Error: Could not open webcam!")
             return
             
-        # Set camera resolution
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # Set camera resolution to higher values
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # Increased resolution
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         
         while True:
             ret, frame = cap.read()
@@ -170,8 +248,8 @@ class FaceRecognitionSystem:
             # Make a copy for drawing
             display_frame = frame.copy()
             
-            # Recognize face
-            student, confidence, folder_name = self.recognize_face(frame)
+            # Recognize face (will also draw face rectangle)
+            student, confidence, folder_name = self.recognize_face(display_frame)
             
             if student is not None:
                 # Mark attendance

@@ -8,47 +8,90 @@ import os
 from tqdm import tqdm
 import numpy as np
 
+class CenterLoss(nn.Module):
+    def __init__(self, num_classes, feat_dim, device):
+        super(CenterLoss, self).__init__()
+        self.centers = nn.Parameter(torch.randn(num_classes, feat_dim).to(device))
+        self.device = device
+        
+    def forward(self, x, labels):
+        batch_size = x.size(0)
+        distmat = torch.pow(x, 2).sum(dim=1, keepdim=True).expand(batch_size, self.centers.size(0)) + \
+                  torch.pow(self.centers, 2).sum(dim=1, keepdim=True).expand(self.centers.size(0), batch_size).t()
+        distmat.addmm_(x, self.centers.t(), beta=1, alpha=-2)
+        
+        classes = torch.arange(self.centers.size(0)).long().to(self.device)
+        labels = labels.unsqueeze(1).expand(batch_size, self.centers.size(0))
+        mask = labels.eq(classes.expand(batch_size, self.centers.size(0)))
+        
+        dist = distmat * mask.float()
+        loss = dist.clamp(min=1e-12, max=1e+12).sum() / batch_size
+        return loss
+
 class FaceRecognitionModel(nn.Module):
     def __init__(self, num_classes):
         super(FaceRecognitionModel, self).__init__()
         # Load the pretrained FaceNet model
         self.backbone = InceptionResnetV1(pretrained='vggface2', classify=False)
         
-        # Freeze most of the backbone layers
-        for param in list(self.backbone.parameters())[:-10]:  # Only fine-tune last few layers
+        # Freeze most backbone layers
+        for param in list(self.backbone.parameters())[:-10]:  # Fine-tune last 10 layers
             param.requires_grad = False
         
-        # Simplified classifier with stronger regularization
-        self.classifier = nn.Sequential(
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
+        # Feature processing
+        self.feature_processor = nn.Sequential(
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.7),  # Increased dropout
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),  # Reduced dropout
-            nn.Linear(256, num_classes)
+            nn.BatchNorm1d(512),
+            nn.Dropout(0.5)
         )
         
-    def forward(self, x):
-        # Get embeddings from the backbone
+        # Classifier
+        self.classifier = nn.Linear(512, num_classes)
+        
+        # Initialize weights
+        nn.init.xavier_uniform_(self.feature_processor[2].weight)
+        nn.init.zeros_(self.feature_processor[2].bias)
+        nn.init.xavier_uniform_(self.classifier.weight)
+        nn.init.zeros_(self.classifier.bias)
+        
+    def forward(self, x, return_embeddings=False):
+        # Get backbone features
         embeddings = self.backbone(x)
-        # Apply our classifier
-        x = self.classifier(embeddings)
-        return x
+        
+        # L2 normalize embeddings
+        embeddings = nn.functional.normalize(embeddings, p=2, dim=1)
+        
+        # Process features
+        processed_embeddings = self.feature_processor(embeddings)
+        
+        if return_embeddings:
+            return processed_embeddings
+            
+        # Get classification output
+        return self.classifier(processed_embeddings)
 
-def create_data_loaders(data_dir="processed_dataset", batch_size=32, val_split=0.2):
-    # Define image transformations with augmentation
+def create_data_loaders(data_dir="processed_dataset", batch_size=16, val_split=0.2):
     train_transform = transforms.Compose([
         transforms.Resize((160, 160)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(10),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(20),
+        transforms.RandomApply([
+            transforms.ColorJitter(0.3, 0.3, 0.3, 0.1),
+            transforms.GaussianBlur(3, sigma=(0.1, 0.2)),
+        ], p=0.5),
+        transforms.RandomGrayscale(p=0.1),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.RandomErasing(p=0.3)
     ])
     
     val_transform = transforms.Compose([
         transforms.Resize((160, 160)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     
     # Load full dataset
@@ -95,30 +138,45 @@ def validate(model, val_loader, criterion, device):
     
     return val_loss/len(val_loader), 100 * correct/total
 
+class TripletLoss(nn.Module):
+    def __init__(self, margin=0.3):
+        super(TripletLoss, self).__init__()
+        self.margin = margin
+        
+    def forward(self, anchor, positive, negative):
+        distance_positive = (anchor - positive).pow(2).sum(1)
+        distance_negative = (anchor - negative).pow(2).sum(1)
+        losses = torch.relu(distance_positive - distance_negative + self.margin)
+        return losses.mean()
+
 def train_model(model, train_loader, val_loader, num_epochs=50, device='cuda'):
-    criterion = nn.CrossEntropyLoss()
+    # Loss functions
+    softmax_criterion = nn.CrossEntropyLoss()
+    triplet_criterion = TripletLoss(margin=0.3)  # Increased margin
+    center_criterion = CenterLoss(
+        num_classes=len(train_loader.dataset.dataset.classes),
+        feat_dim=512,
+        device=device
+    )
     
-    # Separate parameter groups for different learning rates
-    backbone_params = list(model.backbone.parameters())[-10:]  # Only last few layers
-    classifier_params = model.classifier.parameters()
+    # Optimizers
+    backbone_params = list(model.backbone.parameters())[-10:]
+    other_params = list(model.feature_processor.parameters()) + list(model.classifier.parameters())
     
     optimizer = optim.Adam([
-        {'params': backbone_params, 'lr': 1e-5},  # Very small learning rate for backbone
-        {'params': classifier_params, 'lr': 1e-4}  # Larger learning rate for classifier
-    ], weight_decay=1e-4)  # Increased weight decay
+        {'params': backbone_params, 'lr': 1e-4},
+        {'params': other_params, 'lr': 1e-3},
+        {'params': center_criterion.parameters(), 'lr': 1e-4}
+    ], weight_decay=5e-4)  # Increased weight decay
     
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, 
-        mode='max', 
-        factor=0.2,  # More aggressive LR reduction
-        patience=3,   # Reduced patience
-        verbose=True
+        optimizer, mode='max', factor=0.2, patience=4, verbose=True
     )
     
     model = model.to(device)
     best_val_accuracy = 0.0
     patience_counter = 0
-    max_patience = 10  # Reduced early stopping patience
+    max_patience = 8
     
     print("Starting training...")
     for epoch in range(num_epochs):
@@ -133,9 +191,40 @@ def train_model(model, train_loader, val_loader, num_epochs=50, device='cuda'):
             images, labels = images.to(device), labels.to(device)
             
             optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+            
+            # Forward pass
+            embeddings = model(images, return_embeddings=True)
+            outputs = model.classifier(embeddings)
+            
+            # Calculate losses
+            softmax_loss = softmax_criterion(outputs, labels)
+            center_loss = center_criterion(embeddings, labels)
+            
+            # Triplet loss
+            triplet_loss = 0.0
+            if len(torch.unique(labels)) > 1:
+                for label in torch.unique(labels):
+                    mask = labels == label
+                    if torch.sum(mask) >= 2:
+                        pos_embeddings = embeddings[mask]
+                        neg_embeddings = embeddings[~mask]
+                        
+                        pos_dists = torch.pdist(pos_embeddings, p=2)
+                        if len(pos_dists) > 0:
+                            hardest_pos_dist = torch.max(pos_dists)
+                            neg_dists = torch.cdist(pos_embeddings, neg_embeddings, p=2)
+                            hardest_neg_dist = torch.min(neg_dists)
+                            loss = torch.relu(hardest_pos_dist - hardest_neg_dist + 0.3)
+                            triplet_loss += loss
+            
+            # Combined loss with weighted components
+            loss = softmax_loss + 0.3 * triplet_loss + 0.1 * center_loss
+            
             loss.backward()
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            
             optimizer.step()
             
             running_loss += loss.item()
@@ -143,7 +232,6 @@ def train_model(model, train_loader, val_loader, num_epochs=50, device='cuda'):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
-            # Update progress bar
             train_accuracy = 100 * correct/total
             progress_bar.set_postfix({
                 'loss': f'{running_loss/len(train_loader):.4f}',
@@ -151,7 +239,7 @@ def train_model(model, train_loader, val_loader, num_epochs=50, device='cuda'):
             })
         
         # Validation phase
-        val_loss, val_accuracy = validate(model, val_loader, criterion, device)
+        val_loss, val_accuracy = validate(model, val_loader, softmax_criterion, device)
         
         print(f"\nEpoch {epoch+1}/{num_epochs}")
         print(f"Training - Loss: {running_loss/len(train_loader):.4f}, Accuracy: {train_accuracy:.2f}%")
