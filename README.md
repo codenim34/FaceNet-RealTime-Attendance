@@ -4,7 +4,7 @@ A real-time face recognition attendance system using FaceNet and PyTorch. The sy
 
 ## Quick Start (Automated)
 
-## Dependencies
+### Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -32,7 +32,7 @@ python src/attendance.py
 
 If you prefer more control, you can run each step manually:
 
-## Dependencies
+### Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -70,12 +70,6 @@ pip install -r requirements.txt
 - Python 3.8 or higher
 - CUDA-capable GPU (recommended)
 - Webcam for attendance
-
-## Dependencies
-
-```bash
-pip install -r requirements.txt
-```
 
 ## Model Architecture
 
