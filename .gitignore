@@ -3,7 +3,7 @@
 /logs/
 /processed_dataset/
 /attendance/
-
+/prev_models/
 # Python
 __pycache__/
 *.py[cod]
