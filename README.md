@@ -42,7 +42,7 @@ A real-time face recognition attendance system built with FaceNet (Inception-Res
 1. Clone the repository:
 
 ```bash
-git clone [repository-url]
+git clone https://github.com/takitajwar17/FaceNet-RealTime-Attendance.git
 cd FaceNet-RealTime-Attendance
 ```
 
@@ -56,8 +56,14 @@ pip install -r requirements.txt
 
 ### Automated Pipeline
 
+1. **Preprocess Images and Train Model (automated)**
 ```bash
 python run.py  # Runs complete pipeline
+```
+2. **Run Attendance System**
+
+```bash
+python src/attendance.py
 ```
 
 ### Manual Setup
@@ -132,6 +138,7 @@ python src/attendance.py
 ├── processed_dataset/        # Preprocessed face images
 ├── models/                   # Trained models
 │   └── best_model.pth        # Best model checkpoint
+├── prev_models/              # Previously trained models with accuracy
 ├── attendance/               # Attendance records
 ├── logs/                     # Preprocessing and Training logs
 ├── src/
