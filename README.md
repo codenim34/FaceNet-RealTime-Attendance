@@ -1,155 +1,68 @@
 # FaceNet Real-Time Attendance System
 
-A real-time face recognition attendance system built with FaceNet (Inception-ResNet-V1), PyTorch, and OpenCV, leveraging fine-tuned VGGFace2 pretrained model with custom feature processing and data augmentation pipeline.
+## Project Overview
 
-## Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Technical Details](#technical-details)
-- [Project Structure](#project-structure)
-- [License](#license)
-
-## Features
-
-### Core Functionality
-
-- Real-time face detection using MTCNN
-- Face recognition with fine-tuned FaceNet model
-- Automated attendance logging with CSV export
-- Student information management system
-- Real-time visual feedback and confidence scores
-
-### Technical Features
-
-- Custom feature processing pipeline
-- Multi-loss training (Softmax + Center Loss + Triplet Loss)
-- Extensive data augmentation for robustness
-- Early stopping and learning rate scheduling
-- Model checkpointing and best model saving
-
-## Installation
-
-### Prerequisites
-
-- Python 3.8 or higher
-- CUDA-capable GPU (recommended)
-- Webcam for attendance capture
-
-### Setup
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/takitajwar17/FaceNet-RealTime-Attendance.git
-cd FaceNet-RealTime-Attendance
-```
-
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### Automated Pipeline
-
-1. **Preprocess Images and Train Model (automated)**
-```bash
-python run.py  # Runs complete pipeline
-```
-2. **Run Attendance System**
-
-```bash
-python src/attendance.py
-```
-
-### Manual Setup
-
-1. **Preprocess Images**
-
-```bash
-python src/preprocess.py
-```
-
-2. **Train Model**
-
-```bash
-python src/train.py
-```
-
-3. **Run Attendance System**
-
-```bash
-python src/attendance.py
-```
-
-## Technical Details
-
-### Model Architecture
-
-- **Base Model**: FaceNet (Inception-ResNet-V1)
-- **Pretrained**: VGGFace2
-- **Custom Layers**:
-  - Feature Processing Pipeline
-  - Batch Normalization
-  - Dropout (0.7, 0.5)
-  - Custom Classifier
-
-### Training Parameters
-
-- Batch Size: 16
-- Learning Rate: 1e-3 (feature processor), 1e-4 (backbone)
-- Weight Decay: 5e-4
-- Validation Split: 20%
-- Early Stopping Patience: 8 epochs
-
-### Loss Functions
-
-- Cross Entropy Loss (main classification)
-- Center Loss (feature clustering)
-- Triplet Loss (margin: 0.3)
-
-### Data Augmentation
-
-- Geometric: rotation, scale, shift
-- Lighting: brightness, contrast, gamma
-- Environmental: shadows, fog
-- Noise: Gaussian noise, blur
-- Color: hue, saturation, value
-
-### Recognition Parameters
-
-- Confidence Threshold: 0.3
-- Margin Threshold: 0.1
-- Detection Cooldown: 30 seconds
-- Face Detection Parameters:
-  - Margin: 20
-  - Min Face Size: 50
-  - MTCNN Thresholds: [0.5, 0.6, 0.6]
+A machine learning-based attendance system using face recognition technology, implemented with PyTorch and OpenCV. This project leverages FaceNet (Inception-ResNet-V1) to create an intelligent attendance tracking solution.
 
 ## Project Structure
 
 ```
-.
-├── dataset/                  # Raw student images
-├── processed_dataset/        # Preprocessed face images
-├── models/                   # Trained models
-│   └── best_model.pth        # Best model checkpoint
-├── prev_models/              # Previously trained models with accuracy
-├── attendance/               # Attendance records
-├── logs/                     # Preprocessing and Training logs
-├── src/
-│   ├── preprocess.py       # Face detection & augmentation
-│   ├── train.py           # Model training pipeline
-│   ├── attendance.py      # Real-time recognition system
-│   └── student_info.py    # Student data management
-├── run.py                  # Automated pipeline
-└── requirements.txt        # Dependencies
+FaceNet-RealTime-Attendance/
+│
+├── dataset/                   # Student face image directories
+│   ├── 210042106_Adib_Sakhawat/
+│   ├── 210042107_Md_Hasibur_Rahman_Alif/
+│   └── ... (individual student directories)
+│
+├── attendance.ipynb           # Real-time attendance recognition notebook
+├── train.ipynb                # Model training notebook
+├── face_classifier.pkl        # Trained face classification model
+└── other supporting files
 ```
 
-## License
+## Key Components
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### 1. Face Recognition
+- Uses `facenet_pytorch` library
+- MTCNN for face detection
+- InceptionResnetV1 pre-trained on VGGFace2
+
+### 2. Notebooks
+- `attendance.ipynb`: Real-time attendance system
+- `train.ipynb`: Model training pipeline
+
+### 3. Dataset
+- Contains individual student directories
+- Each directory named with student ID and full name
+- Stores student-specific face images for training
+
+## Prerequisites
+
+- Python 3.8+
+- PyTorch
+- facenet_pytorch
+- OpenCV
+- Jupyter Notebook
+
+## Installation
+
+1. Clone the repository
+2. Install required dependencies:
+```bash
+pip install torch torchvision facenet_pytorch opencv-python jupyter
+```
+
+## Usage
+
+1. Prepare your dataset in the `dataset/` directory
+2. Run `train.ipynb` to train the face recognition model
+3. Use `attendance.ipynb` to perform real-time attendance tracking
+
+## Technical Details
+
+- **Model**: FaceNet (Inception-ResNet-V1)
+- **Face Detection**: MTCNN
+- **Pre-trained Weights**: VGGFace2
+- **Model Serialization**: Pickle (.pkl)
+
+
