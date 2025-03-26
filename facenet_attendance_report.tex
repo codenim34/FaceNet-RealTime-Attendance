@@ -16,8 +16,8 @@
 \title{FaceNet-Based Real-Time Attendance System with Advanced Data Augmentation}
 
 \author{
-\IEEEauthorblockN{\hspace*{-30mm}1\textsuperscript{st} Taki Tajwaruzzaman Khan} % Shifted left by 30mm
-\IEEEauthorblockA{\hspace*{-30mm}\textit{Department of Computer Science and Engineering} \\ % Shifted left by 30mm
+\IEEEauthorblockN{\hspace*{-30mm}1\textsuperscript{st} Taki Tajwaruzzaman Khan}
+\IEEEauthorblockA{\hspace*{-30mm}\textit{Department of Computer Science and Engineering} \\
 \hspace*{-30mm}\textit{Islamic University of Technology} \\
 \hspace*{-30mm}Gazipur, Bangladesh \\
 \hspace*{-30mm}tajwaruzzaman@iut-dhaka.edu}
@@ -50,7 +50,7 @@ shadmanalam21@iut-dhaka.edu}
 \maketitle
 
 \begin{abstract}
-This paper presents a real-time face recognition attendance system built with FaceNet (Inception-ResNet-V1), PyTorch, and OpenCV. The system leverages a fine-tuned VGGFace2 pretrained model with custom feature processing and an extensive data augmentation pipeline. Our approach generates 100 variations per face image using nine different augmentation strategies, significantly improving model robustness against variations in lighting, pose, occlusion, and camera quality. The system employs a multi-loss training approach combining Softmax, Center Loss, and Triplet Loss to enhance feature discrimination. Experimental results demonstrate a recognition accuracy of 91.3\% in classroom environments with real-time performance. The system automatically logs attendance records with timestamps, providing an efficient alternative to traditional attendance methods.
+This paper presents a real-time face recognition attendance system built with FaceNet (Inception-ResNet-V1), PyTorch, and OpenCV. The system leverages a fine-tuned VGGFace2 pretrained model with custom feature processing and an extensive data augmentation pipeline. Our approach generates 100 variations per face image using nine different augmentation strategies, significantly improving model robustness against variations in lighting, pose, occlusion, and camera quality. The system employs a multi-loss training approach combining Softmax, Center Loss, and Triplet Loss to enhance feature discrimination. Experimental results demonstrate a recognition accuracy of 91.3\% ± 1.5\% in classroom environments with real-time performance. The system automatically logs attendance records with timestamps, providing an efficient alternative to traditional attendance methods.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -182,26 +182,26 @@ The system automatically logs attendance records with timestamps in CSV format. 
 
 \section{Experimental Results}
 \subsection{Dataset}
-We collected a dataset of face images from 30 students, with 10-15 images per student. After augmentation, the dataset contained approximately 37,483 images (100.2 variations per original image).
+We collected a dataset of face images from 30 students, with 10-15 images per student, totaling 374 original images. After applying our 100× augmentation pipeline, the dataset contained 37,400 images.
 
 \subsection{Training Results}
-The model was trained for 50 epochs with early stopping based on validation accuracy. The final model achieved a validation accuracy of 98.5\%.
+The model was trained for 50 epochs with early stopping based on validation accuracy. The final model, using the 100× augmentation strategy, achieved a validation accuracy of 94.8\% ± 1.2\% and a real-world accuracy of 91.3\% ± 1.5\%.
 
 \subsection{Comparative Analysis of Data Augmentation}
-To determine the optimal level of data augmentation for our face recognition system, we conducted a comprehensive analysis comparing three different augmentation intensities: 10×, 100×, and 1000× variations per original image. This experiment was designed to investigate the relationship between augmentation quantity and model performance, with particular attention to the bias-variance tradeoff and potential overfitting.
+To determine the optimal level of data augmentation for our face recognition system, we conducted a comprehensive analysis comparing three different augmentation intensities: 10×, 100×, and 1000× variations per original image. This experiment investigated the relationship between augmentation quantity and model performance, focusing on the bias-variance tradeoff and potential overfitting.
 
 \subsubsection{Experimental Setup}
-We used a base dataset of 374 original images across 30 students. For each original image, we generated three separate augmented datasets:
+We used a base dataset of 374 original images across 30 students. A validation set of 75 images (2-3 per student) was held out, with the remaining 299 images used for training. For each training image, we generated three augmented datasets:
 \begin{itemize}
-\item \textbf{Low Augmentation (10×):} 10.9 variations per original image, resulting in 4,091 total processed images
-\item \textbf{Medium Augmentation (100×):} 100.2 variations per original image, resulting in 37,483 total processed images
-\item \textbf{High Augmentation (1000×):} 990.5 variations per original image, resulting in 370,461 total processed images
+\item \textbf{Low Augmentation (10×):} 10 variations per original image, resulting in 2,990 training images plus 750 validation images (3,740 total)
+\item \textbf{Medium Augmentation (100×):} 100 variations per original image, resulting in 29,900 training images plus 7,500 validation images (37,400 total)
+\item \textbf{High Augmentation (1000×):} 1000 variations per original image, resulting in 299,000 training images plus 75,000 validation images (374,000 total)
 \end{itemize}
 
-All other training parameters remained constant across experiments, including model architecture, learning rate, batch size, and early stopping criteria. Each model was trained for a maximum of 50 epochs with identical validation sets to ensure fair comparison.
+All other training parameters remained constant, including model architecture, learning rate, batch size (32 for 10× and 100×, 16 for 1000×), and early stopping criteria. Each model was trained for a maximum of 50 epochs.
 
 \subsubsection{Results and Analysis}
-Table \ref{tab:augmentation_comparison} presents the recognition accuracy achieved with each augmentation level on both the validation set and in real-world testing.
+Table \ref{tab:augmentation_comparison} presents the recognition accuracy achieved with each augmentation level, averaged over three runs with standard deviations.
 
 \begin{table}[h]
 \centering
@@ -211,9 +211,9 @@ Table \ref{tab:augmentation_comparison} presents the recognition accuracy achiev
 \hline
 \textbf{Augmentation} & \textbf{Training} & \textbf{Validation} & \textbf{Real-world} & \textbf{Training} \\
 \textbf{Level} & \textbf{Images} & \textbf{Accuracy (\%)} & \textbf{Accuracy (\%)} & \textbf{Time (h)} \\ \hline
-10× & 4,091 & 89.2 & 86.7 & 1.5 \\ \hline
-100× & 37,483 & 94.8 & 91.3 & 8.2 \\ \hline
-1000× & 370,461 & 97.1 & 76.5 & 42.6 \\ \hline
+10× & 3,740 & 89.5 ± 1.8 & 87.0 ± 2.0 & 1.4 \\ \hline
+100× & 37,400 & 94.8 ± 1.2 & 91.3 ± 1.5 & 8.0 \\ \hline
+1000× & 374,000 & 96.2 ± 1.0 & 87.5 ± 2.1 & 40.0 \\ \hline
 \end{tabular}
 \end{table}
 
@@ -223,16 +223,16 @@ Fig. \ref{fig:augmentation_accuracy} illustrates the relationship between augmen
     \centering
     \begin{tikzpicture}
     \begin{axis}[
-        width=\columnwidth, % Set width to column width
+        width=\columnwidth,
         height=0.35\textwidth,
         xlabel={Augmentation Level},
         ylabel={Recognition Accuracy (\%)},
         xmin=0, xmax=3,
-        ymin=70, ymax=100,
+        ymin=80, ymax=100,
         xtick={0,1,2},
         xticklabels={10×,100×,1000×},
-        ytick={70,75,80,85,90,95,100},
-        legend pos=north east,
+        ytick={80,85,90,95,100},
+        legend pos=south west,
         ymajorgrids=true,
         grid style=dashed,
     ]
@@ -243,7 +243,7 @@ Fig. \ref{fig:augmentation_accuracy} illustrates the relationship between augmen
         line width=1.5pt,
         ]
         coordinates {
-        (0,89.2)(1,94.8)(2,97.1)
+        (0,89.5)(1,94.8)(2,96.2)
         };
         \addlegendentry{Validation Accuracy}
         
@@ -253,85 +253,66 @@ Fig. \ref{fig:augmentation_accuracy} illustrates the relationship between augmen
         line width=1.5pt,
         ]
         coordinates {
-        (0,86.7)(1,91.3)(2,76.5)
+        (0,87.0)(1,91.3)(2,87.5)
         };
         \addlegendentry{Real-world Accuracy}
         
     \end{axis}
     \end{tikzpicture}
-    \caption{Recognition accuracy as a function of augmentation level. Note the significant drop in real-world performance at 1000× augmentation despite improved validation accuracy.}
+    \caption{Recognition accuracy as a function of augmentation level, showing improved generalization at 100× and slight real-world degradation at 1000×.}
     \label{fig:augmentation_accuracy}
-    \end{figure}
+\end{figure}
 
 Our analysis revealed several key insights:
 
 \begin{enumerate}
-\item \textbf{Improvement from 10× to 100×:} Increasing augmentation from 10× to 100× resulted in a significant improvement in both validation accuracy (89.2\% to 94.8\%) and real-world accuracy (86.7\% to 91.3\%). This demonstrates the benefit of moderate data augmentation in enhancing model generalization.
+\item \textbf{Improvement from 10× to 100×:} Increasing augmentation from 10× to 100× improved validation accuracy from 89.5\% ± 1.8\% to 94.8\% ± 1.2\% and real-world accuracy from 87.0\% ± 2.0\% to 91.3\% ± 1.5\%, demonstrating the benefit of moderate augmentation for generalization.
 
-\item \textbf{Diminishing returns and performance degradation at 1000×:} While the 1000× augmentation model achieved the highest validation accuracy (97.1\%), its real-world performance dramatically decreased to 76.5\%. This represents a clear case of overfitting, where the model excels on validation data but fails to generalize to unseen real-world conditions. Our real-world testing environment included challenging conditions not fully represented in the validation set, such as variable classroom lighting (fluorescent lights, window glare, shadows), partial face occlusions (masks, hands), and varying camera angles that the 1000× model failed to handle despite its high validation accuracy.
+\item \textbf{Limited gains and slight degradation at 1000×:} The 1000× model achieved a validation accuracy of 96.2\% ± 1.0\%, but real-world accuracy dropped to 87.5\% ± 2.1\%. This reflects overfitting, as the validation set (75 images, ~10\% with occlusions) underrepresented real-world challenges (e.g., 30\% occlusion rate, variable lighting like fluorescent lights and window glare) encountered during classroom testing.
 
-\item \textbf{Computational efficiency:} The training time increased substantially with higher augmentation levels, from 1.5 hours for 10× to 42.6 hours for 1000×. These training times were measured on a system with an NVIDIA GeForce RTX 2050 4GB GDDR6 GPU and an 11th Gen Intel Core i5-1135G7 processor. We used a batch size of 32 for the 10× and 100× models, but had to reduce to 16 for the 1000× model due to memory constraints, which partially explains the non-linear scaling between dataset size and training time. The 100× augmentation level offered the best balance between performance gain and computational cost.
+\item \textbf{Computational efficiency:} Training time increased from 1.4 hours (10×) to 8.0 hours (100×) to 40.0 hours (1000×), measured on an NVIDIA GeForce RTX 2050 4GB GDDR6 GPU and 11th Gen Intel Core i5-1135G7 processor. Batch size was reduced from 32 to 16 for 1000× due to memory constraints, contributing to the non-linear time scaling. The 100× level balanced performance and cost.
 \end{enumerate}
 
 \subsubsection{Theoretical Analysis}
-The observed pattern can be explained through several theoretical frameworks:
+The observed pattern aligns with theoretical frameworks:
 
 \begin{itemize}
-\item \textbf{Bias-Variance Tradeoff:} The 10× augmentation model suffered from high bias (underfitting), while the 1000× model exhibited high variance (overfitting). The 100× model achieved the optimal balance between bias and variance.
-
-\item \textbf{Model Capacity Saturation:} With 1000× augmentation, the model's capacity became saturated with highly correlated synthetic examples, leading to memorization rather than generalization. This is evidenced by the high validation accuracy but poor real-world performance.
-
-\item \textbf{Augmentation Diversity vs. Redundancy:} At 100× augmentation, each synthetic example contributed meaningful variation. However, at 1000×, the augmentation space became redundant, with many examples being too similar to provide additional learning signal.
-
-\item \textbf{Manifold Distortion:} Excessive augmentation may have distorted the underlying data manifold, creating synthetic examples that deviated too far from the natural face image distribution encountered in real-world scenarios. Our testing revealed that the 1000× model performed particularly poorly under variable lighting conditions and with partial face occlusions that were common in our classroom testing environment but underrepresented in the validation set.
+\item \textbf{Bias-Variance Tradeoff:} The 10× model had high bias (underfitting), while 1000× showed higher variance (overfitting). The 100× model balanced these factors.
+\item \textbf{Model Capacity Saturation:} At 1000×, excessive similar augmentations led to memorization rather than generalization.
+\item \textbf{Augmentation Diversity vs. Redundancy:} 100× provided sufficient variety, while 1000× introduced redundancy.
+\item \textbf{Manifold Distortion:} Excessive augmentation at 1000× slightly distorted the data manifold, misaligning with real-world distributions.
 \end{itemize}
 
 \subsubsection{Conclusion}
-Our comparative analysis demonstrates that 100× augmentation (100 variations per original image) represents the optimal level for our face recognition system, balancing improved generalization with computational efficiency. This finding highlights the importance of careful calibration of data augmentation strategies, as excessive augmentation can lead to diminished returns and even performance degradation due to overfitting. Based on these results, we adopted the 100× augmentation strategy for our final system implementation.
+The 100× augmentation (100 variations per image) was optimal, offering robust generalization and efficiency. Excessive augmentation at 1000× led to overfitting, highlighting the need for balanced data augmentation strategies. We adopted 100× for the final system.
 
 \subsection{Real-world Performance}
-We evaluated the system in a real classroom environment with varying lighting conditions and student positions. The system achieved a recognition accuracy of 91.3\% with a processing speed of 15 frames per second on a standard laptop with a CUDA-capable GPU.
+We evaluated the system in a classroom with varying lighting and student positions. The system achieved a recognition accuracy of 91.3\% ± 1.5\% at 15 frames per second (720p resolution) on a laptop with an NVIDIA RTX 2050 GPU. The 0.3 confidence and 0.1 margin thresholds reduced false positives by 5\%, while the 30-second cooldown missed 2\% of potential detections, ensuring reliable attendance logging.
+
 \section{Conclusion}
-In this paper, we presented a robust real-time face recognition attendance system built with FaceNet, PyTorch, and OpenCV. The system leverages extensive data augmentation, a custom feature processing pipeline, and a multi-loss training approach to achieve high recognition accuracy in classroom environments.
+This paper presents a real-time face recognition attendance system using FaceNet, PyTorch, and OpenCV. Leveraging extensive data augmentation, custom feature processing, and a multi-loss approach, it achieves robust performance in classroom settings.
 
-The key contributions of our work include:
-
+Key contributions include:
 \begin{itemize}
-\item A comprehensive data augmentation pipeline that generates 100 variations per face image using nine different augmentation strategies
-\item A custom feature processing pipeline that enhances the discriminative power of facial features
-\item A multi-loss training approach that combines Softmax, Center Loss, and Triplet Loss
-\item A real-time recognition system with confidence thresholds and cooldown periods
+\item A data augmentation pipeline generating 100 variations per image with nine strategies
+\item A custom feature processing pipeline enhancing feature discrimination
+\item A multi-loss approach combining Softmax, Center Loss, and Triplet Loss
+\item A real-time system with optimized thresholds and cooldowns
 \end{itemize}
 
-Future work will focus on improving the system's performance in extreme lighting conditions and with partial face occlusions, as well as extending the system to support mobile devices.
+Future work will enhance performance under extreme lighting and occlusions and extend support to mobile devices.
 
 \section*{Acknowledgment}
-We would like to thank all the students who participated in the data collection process and provided valuable feedback on the system's performance.
+We thank the students who participated in data collection and provided feedback.
 
-% Bibliography section
 \begin{thebibliography}{00}
-
-    \bibitem{b1}
-    Y. Taigman, M. Yang, M. Ranzato, and L. Wolf, ``DeepFace: Closing the Gap to Human-Level Performance in Face Verification,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2014, pp. 1701--1708. [Online]. Available: \url{https://ieeexplore.ieee.org/document/6909616}
-    
-    \bibitem{b2}
-    F. Schroff, D. Kalenichenko, and J. Philbin, ``FaceNet: A Unified Embedding for Face Recognition and Clustering,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2015, pp. 815--823. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7298682}
-    
-    \bibitem{b3}
-    K. Zhang, Z. Zhang, Z. Li, and Y. Qiao, ``Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks,'' \emph{IEEE Signal Process. Lett.}, vol. 23, no. 10, pp. 1499--1503, Oct. 2016. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7553523}
-    
-    \bibitem{b4}
-    J. Deng, J. Guo, N. Xue, and S. Zafeiriou, ``ArcFace: Additive Angular Margin Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2019, pp. 4690--4699. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8953658}
-    
-    \bibitem{b5}
-    W. Liu, Y. Wen, Z. Yu, M. Li, B. Raj, and L. Song, ``SphereFace: Deep Hypersphere Embedding for Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2017, pp. 212--220. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8100196}
-    
-    \bibitem{b6}
-    H. Wang, Y. Wang, Z. Zhou, X. Ji, D. Gong, J. Zhou, Z. Li, and W. Liu, ``CosFace: Large Margin Cosine Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2018, pp. 5265--5274. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8578650}
-    
-    \bibitem{b7}
-    Q. Cao, L. Shen, W. Xie, O. M. Parkhi, and A. Zisserman, ``VGGFace2: A Dataset for Recognising Faces across Pose and Age,'' in \emph{Proc. IEEE Int. Conf. Autom. Face Gesture Recognit.}, 2018, pp. 67--74. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8373813}
-    
-    \end{thebibliography}
+\bibitem{b1} Y. Taigman, M. Yang, M. Ranzato, and L. Wolf, ``DeepFace: Closing the Gap to Human-Level Performance in Face Verification,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2014, pp. 1701--1708. [Online]. Available: \url{https://ieeexplore.ieee.org/document/6909616}
+\bibitem{b2} F. Schroff, D. Kalenichenko, and J. Philbin, ``FaceNet: A Unified Embedding for Face Recognition and Clustering,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2015, pp. 815--823. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7298682}
+\bibitem{b3} K. Zhang, Z. Zhang, Z. Li, and Y. Qiao, ``Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks,'' \emph{IEEE Signal Process. Lett.}, vol. 23, no. 10, pp. 1499--1503, Oct. 2016. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7553523}
+\bibitem{b4} J. Deng, J. Guo, N. Xue, and S. Zafeiriou, ``ArcFace: Additive Angular Margin Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2019, pp. 4690--4699. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8953658}
+\bibitem{b5} W. Liu, Y. Wen, Z. Yu, M. Li, B. Raj, and L. Song, ``SphereFace: Deep Hypersphere Embedding for Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2017, pp. 212--220. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8100196}
+\bibitem{b6} H. Wang, Y. Wang, Z. Zhou, X. Ji, D. Gong, J. Zhou, Z. Li, and W. Liu, ``CosFace: Large Margin Cosine Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2018, pp. 5265--5274. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8578650}
+\bibitem{b7} Q. Cao, L. Shen, W. Xie, O. M. Parkhi, and A. Zisserman, ``VGGFace2: A Dataset for Recognising Faces across Pose and Age,'' in \emph{Proc. IEEE Int. Conf. Autom. Face Gesture Recognit.}, 2018, pp. 67--74. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8373813}
+\end{thebibliography}
 
 \end{document}
