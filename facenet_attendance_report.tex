@@ -1,0 +1,318 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{FaceNet-Based Real-Time Attendance System with Advanced Data Augmentation}
+
+\author{
+\IEEEauthorblockN{\hspace*{-30mm}1\textsuperscript{st} Taki Tajwaruzzaman Khan}
+\IEEEauthorblockA{\hspace*{-30mm}\textit{Department of Computer Science and Engineering} \\
+\hspace*{-30mm}\textit{Islamic University of Technology} \\
+\hspace*{-30mm}Gazipur, Bangladesh \\
+\hspace*{-30mm}tajwaruzzaman@iut-dhaka.edu}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Tasnim Ashraf}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+\textit{Islamic University of Technology} \\
+Gazipur, Bangladesh \\
+tasnimashraf@iut-dhaka.edu}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Anatara Arifa Mullick}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+\textit{Islamic University of Technology} \\
+Gazipur, Bangladesh \\
+antaraarifa@iut-dhaka.edu}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Ahabab Imtiaz Risat}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+\textit{Islamic University of Technology} \\
+Gazipur, Bangladesh \\
+ahababimtiaz@iut-dhaka.edu}
+\and
+\IEEEauthorblockN{5\textsuperscript{th} Syed Md Shadman Alam}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+\textit{Islamic University of Technology} \\
+Gazipur, Bangladesh \\
+shadmanalam21@iut-dhaka.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+This paper presents a real-time face recognition attendance system built with FaceNet (Inception-ResNet-V1), PyTorch, and OpenCV. The system leverages a fine-tuned VGGFace2 pretrained model with custom feature processing and an extensive data augmentation pipeline. Our approach generates 100 variations per face image using nine different augmentation strategies, significantly improving model robustness against variations in lighting, pose, occlusion, and camera quality. The system employs a multi-loss training approach combining Softmax, Center Loss, and Triplet Loss to enhance feature discrimination. Experimental results demonstrate a recognition accuracy of 91.3\% ± 1.5\% in classroom environments with real-time performance. The system automatically logs attendance records with timestamps, providing an efficient alternative to traditional attendance methods.
+\end{abstract}
+
+\begin{IEEEkeywords}
+face recognition, attendance system, FaceNet, data augmentation, deep learning
+\end{IEEEkeywords}
+
+\section{Introduction}
+Automatic attendance systems based on facial recognition have gained significant attention due to their convenience and efficiency compared to traditional methods. However, these systems often face challenges in real-world classroom environments, including varying lighting conditions, different face poses, partial occlusions, and camera quality limitations.
+
+In this paper, we present a robust real-time attendance system that addresses these challenges through several key innovations:
+
+\begin{itemize}
+\item A comprehensive data augmentation pipeline that generates 100 variations per face image using nine different augmentation strategies
+\item A custom feature processing pipeline built on top of a fine-tuned FaceNet model
+\item A multi-loss training approach that combines Softmax, Center Loss, and Triplet Loss
+\item Real-time face detection and recognition with confidence thresholds and cooldown periods
+\end{itemize}
+
+The system is designed to operate in classroom environments, automatically detecting and recognizing students' faces and logging their attendance with timestamps. The implementation is built using PyTorch and OpenCV, with the MTCNN algorithm for face detection and alignment.
+
+\section{Related Work}
+Face recognition has evolved significantly with the advent of deep learning. Early approaches used handcrafted features like Local Binary Patterns (LBP) and Histogram of Oriented Gradients (HOG). Modern approaches leverage deep convolutional neural networks (CNNs) to learn discriminative facial features automatically.
+
+DeepFace \cite{b1} and FaceNet \cite{b2} were pioneering works that achieved human-level performance in face verification tasks. FaceNet, in particular, introduced the triplet loss function to learn embeddings where faces of the same person are closer together than faces of different people.
+
+Several attendance systems based on facial recognition have been proposed in the literature. However, many of these systems struggle with real-world challenges such as varying lighting conditions, different face poses, and partial occlusions. Our work addresses these challenges through extensive data augmentation and a robust training methodology.
+
+\section{Methodology}
+\subsection{System Architecture}
+The proposed system consists of several key components:
+
+\begin{itemize}
+\item Face detection and alignment using MTCNN
+\item Feature extraction using a fine-tuned FaceNet model
+\item Custom feature processing pipeline
+\item Classification layer for student identification
+\item Attendance logging and management system
+\end{itemize}
+
+Fig. 1 illustrates the overall architecture of the system.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\columnwidth]{diagram-export-3-26-2025-7_17_13-PM.png}
+\caption{Model architecture of the FaceNet-based attendance system showing the pipeline from face detection to attendance logging.}
+\label{fig:model_architecture}
+\end{figure}
+
+\subsection{Data Preprocessing and Augmentation}
+One of the key contributions of our work is the extensive data augmentation pipeline. For each student, we collect 10-15 face images and generate 100 variations per image using nine different augmentation strategies:
+
+\begin{itemize}
+\item Basic augmentations (mild, normal, strong, creative)
+\item Classroom-specific augmentations (classroom, masked, glasses)
+\item Device and lighting specific augmentations (device, night mode)
+\end{itemize}
+
+These augmentations simulate various real-world conditions that might be encountered during attendance taking, including different lighting conditions, face poses, occlusions (such as masks and glasses), and camera qualities.
+
+The augmentation process begins with face detection and alignment using MTCNN. The detected faces are then subjected to various transformations, including:
+
+\begin{itemize}
+\item Geometric transformations (rotation, scaling, translation)
+\item Lighting adjustments (brightness, contrast, gamma)
+\item Environmental simulations (shadows, fog, rain)
+\item Noise and blur effects
+\item Occlusion simulations (dropout, masks, glasses)
+\end{itemize}
+
+This extensive augmentation strategy significantly improves the robustness of the model against variations in real-world conditions.
+
+\subsection{Model Architecture}
+Our model builds upon the FaceNet architecture, specifically the Inception-ResNet-V1 model pretrained on the VGGFace2 dataset. We add a custom feature processing pipeline consisting of:
+
+\begin{itemize}
+\item Batch normalization to stabilize training
+\item Dropout layers (0.7 and 0.5) to prevent overfitting
+\item A fully connected layer for feature transformation
+\item ReLU activation and additional batch normalization
+\end{itemize}
+
+The final classification layer maps the processed features to student identities. During training, we freeze most of the backbone layers and only fine-tune the last 10 layers, along with our custom feature processing pipeline and classifier.
+
+\subsection{Training Methodology}
+We employ a multi-loss training approach that combines:
+
+\begin{itemize}
+\item Softmax loss for classification
+\item Center loss to enhance intra-class compactness
+\item Triplet loss to increase inter-class separation
+\end{itemize}
+
+The combined loss function is defined as:
+
+\begin{equation}
+L = L_{softmax} + \alpha L_{triplet} + \beta L_{center}
+\end{equation}
+
+where $\alpha = 0.3$ and $\beta = 0.1$ are weighting factors.
+
+We use the Adam optimizer with different learning rates for different components: $10^{-4}$ for the backbone layers and $10^{-3}$ for the feature processor and classifier. We also employ learning rate scheduling, early stopping, and model checkpointing to improve training efficiency and model performance.
+
+\section{Implementation Details}
+\subsection{Face Detection and Alignment}
+We use the MTCNN algorithm for face detection and alignment with the following parameters:
+
+\begin{itemize}
+\item Image size: 160 × 160 pixels
+\item Margin: 20 pixels
+\item Minimum face size: 50 pixels
+\item Detection thresholds: [0.5, 0.6, 0.6]
+\end{itemize}
+
+These parameters are optimized for classroom environments, allowing for the detection of faces at various distances from the camera.
+
+\subsection{Real-time Recognition System}
+The real-time recognition system captures video from a webcam, detects faces in each frame, and recognizes the detected faces using the trained model. The system employs several mechanisms to ensure reliable recognition:
+
+\begin{itemize}
+\item Confidence threshold: A face is recognized only if the confidence score exceeds 0.3
+\item Margin threshold: The difference between the top two confidence scores must exceed 0.1
+\item Detection cooldown: A student's attendance is marked at most once every 30 seconds
+\end{itemize}
+
+These mechanisms help prevent false positives and ensure that each student's attendance is recorded accurately.
+
+\subsection{Attendance Management}
+The system automatically logs attendance records with timestamps in CSV format. Each record includes the student's ID, name, and the time of detection. The attendance records are saved in a dedicated directory, organized by date.
+
+\section{Experimental Results}
+\subsection{Dataset}
+We collected a dataset of face images from 30 students, with 10-15 images per student, totaling 374 original images. After applying our 100× augmentation pipeline, the dataset contained 37,400 images.
+
+\subsection{Training Results}
+The model was trained for 50 epochs with early stopping based on validation accuracy. The final model, using the 100× augmentation strategy, achieved a validation accuracy of 94.8\% ± 1.2\% and a real-world accuracy of 91.3\% ± 1.5\%.
+
+\subsection{Comparative Analysis of Data Augmentation}
+To determine the optimal level of data augmentation for our face recognition system, we conducted a comprehensive analysis comparing three different augmentation intensities: 10×, 100×, and 1000× variations per original image. This experiment investigated the relationship between augmentation quantity and model performance, focusing on the bias-variance tradeoff and potential overfitting.
+
+\subsubsection{Experimental Setup}
+We used a base dataset of 374 original images across 30 students. A validation set of 75 images (2-3 per student) was held out, with the remaining 299 images used for training. For each training image, we generated three augmented datasets:
+\begin{itemize}
+\item \textbf{Low Augmentation (10×):} 10 variations per original image, resulting in 2,990 training images plus 750 validation images (3,740 total)
+\item \textbf{Medium Augmentation (100×):} 100 variations per original image, resulting in 29,900 training images plus 7,500 validation images (37,400 total)
+\item \textbf{High Augmentation (1000×):} 1000 variations per original image, resulting in 299,000 training images plus 75,000 validation images (374,000 total)
+\end{itemize}
+
+All other training parameters remained constant, including model architecture, learning rate, batch size (32 for 10× and 100×, 16 for 1000×), and early stopping criteria. Each model was trained for a maximum of 50 epochs.
+
+\subsubsection{Results and Analysis}
+Table \ref{tab:augmentation_comparison} presents the recognition accuracy achieved with each augmentation level, averaged over three runs with standard deviations.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of Recognition Accuracy Across Different Augmentation Levels}
+\label{tab:augmentation_comparison}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{Augmentation} & \textbf{Training} & \textbf{Validation} & \textbf{Real-world} & \textbf{Training} \\
+\textbf{Level} & \textbf{Images} & \textbf{Accuracy (\%)} & \textbf{Accuracy (\%)} & \textbf{Time (h)} \\ \hline
+10× & 3,740 & 89.5 ± 1.8 & 87.0 ± 2.0 & 1.4 \\ \hline
+100× & 37,400 & 94.8 ± 1.2 & 91.3 ± 1.5 & 8.0 \\ \hline
+1000× & 374,000 & 96.2 ± 1.0 & 87.5 ± 2.1 & 40.0 \\ \hline
+\end{tabular}
+\end{table}
+
+Fig. \ref{fig:augmentation_accuracy} illustrates the relationship between augmentation level and recognition accuracy.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}
+    \begin{axis}[
+        width=\columnwidth,
+        height=0.35\textwidth,
+        xlabel={Augmentation Level},
+        ylabel={Recognition Accuracy (\%)},
+        xmin=0, xmax=3,
+        ymin=80, ymax=100,
+        xtick={0,1,2},
+        xticklabels={10×,100×,1000×},
+        ytick={80,85,90,95,100},
+        legend pos=south west,
+        ymajorgrids=true,
+        grid style=dashed,
+    ]
+    
+    \addplot[
+        color=blue,
+        mark=square,
+        line width=1.5pt,
+        ]
+        coordinates {
+        (0,89.5)(1,94.8)(2,96.2)
+        };
+        \addlegendentry{Validation Accuracy}
+        
+    \addplot[
+        color=red,
+        mark=triangle,
+        line width=1.5pt,
+        ]
+        coordinates {
+        (0,87.0)(1,91.3)(2,87.5)
+        };
+        \addlegendentry{Real-world Accuracy}
+        
+    \end{axis}
+    \end{tikzpicture}
+    \caption{Recognition accuracy as a function of augmentation level, showing improved generalization at 100× and slight real-world degradation at 1000×.}
+    \label{fig:augmentation_accuracy}
+\end{figure}
+
+Our analysis revealed several key insights:
+
+\begin{enumerate}
+\item \textbf{Improvement from 10× to 100×:} Increasing augmentation from 10× to 100× improved validation accuracy from 89.5\% ± 1.8\% to 94.8\% ± 1.2\% and real-world accuracy from 87.0\% ± 2.0\% to 91.3\% ± 1.5\%, demonstrating the benefit of moderate augmentation for generalization.
+
+\item \textbf{Limited gains and slight degradation at 1000×:} The 1000× model achieved a validation accuracy of 96.2\% ± 1.0\%, but real-world accuracy dropped to 87.5\% ± 2.1\%. This reflects overfitting, as the validation set (75 images, ~10\% with occlusions) underrepresented real-world challenges (e.g., 30\% occlusion rate, variable lighting like fluorescent lights and window glare) encountered during classroom testing.
+
+\item \textbf{Computational efficiency:} Training time increased from 1.4 hours (10×) to 8.0 hours (100×) to 40.0 hours (1000×), measured on an NVIDIA GeForce RTX 2050 4GB GDDR6 GPU and 11th Gen Intel Core i5-1135G7 processor. Batch size was reduced from 32 to 16 for 1000× due to memory constraints, contributing to the non-linear time scaling. The 100× level balanced performance and cost.
+\end{enumerate}
+
+\subsubsection{Theoretical Analysis}
+The observed pattern aligns with theoretical frameworks:
+
+\begin{itemize}
+\item \textbf{Bias-Variance Tradeoff:} The 10× model had high bias (underfitting), while 1000× showed higher variance (overfitting). The 100× model balanced these factors.
+\item \textbf{Model Capacity Saturation:} At 1000×, excessive similar augmentations led to memorization rather than generalization.
+\item \textbf{Augmentation Diversity vs. Redundancy:} 100× provided sufficient variety, while 1000× introduced redundancy.
+\item \textbf{Manifold Distortion:} Excessive augmentation at 1000× slightly distorted the data manifold, misaligning with real-world distributions.
+\end{itemize}
+
+\subsubsection{Conclusion}
+The 100× augmentation (100 variations per image) was optimal, offering robust generalization and efficiency. Excessive augmentation at 1000× led to overfitting, highlighting the need for balanced data augmentation strategies. We adopted 100× for the final system.
+
+\subsection{Real-world Performance}
+We evaluated the system in a classroom with varying lighting and student positions. The system achieved a recognition accuracy of 91.3\% ± 1.5\% at 15 frames per second (720p resolution) on a laptop with an NVIDIA RTX 2050 GPU. The 0.3 confidence and 0.1 margin thresholds reduced false positives by 5\%, while the 30-second cooldown missed 2\% of potential detections, ensuring reliable attendance logging.
+
+\section{Conclusion}
+This paper presents a real-time face recognition attendance system using FaceNet, PyTorch, and OpenCV. Leveraging extensive data augmentation, custom feature processing, and a multi-loss approach, it achieves robust performance in classroom settings.
+
+Key contributions include:
+\begin{itemize}
+\item A data augmentation pipeline generating 100 variations per image with nine strategies
+\item A custom feature processing pipeline enhancing feature discrimination
+\item A multi-loss approach combining Softmax, Center Loss, and Triplet Loss
+\item A real-time system with optimized thresholds and cooldowns
+\end{itemize}
+
+Future work will enhance performance under extreme lighting and occlusions and extend support to mobile devices.
+
+\section*{Acknowledgment}
+We thank the students who participated in data collection and provided feedback.
+
+\begin{thebibliography}{00}
+\bibitem{b1} Y. Taigman, M. Yang, M. Ranzato, and L. Wolf, ``DeepFace: Closing the Gap to Human-Level Performance in Face Verification,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2014, pp. 1701--1708. [Online]. Available: \url{https://ieeexplore.ieee.org/document/6909616}
+\bibitem{b2} F. Schroff, D. Kalenichenko, and J. Philbin, ``FaceNet: A Unified Embedding for Face Recognition and Clustering,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2015, pp. 815--823. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7298682}
+\bibitem{b3} K. Zhang, Z. Zhang, Z. Li, and Y. Qiao, ``Joint Face Detection and Alignment Using Multitask Cascaded Convolutional Networks,'' \emph{IEEE Signal Process. Lett.}, vol. 23, no. 10, pp. 1499--1503, Oct. 2016. [Online]. Available: \url{https://ieeexplore.ieee.org/document/7553523}
+\bibitem{b4} J. Deng, J. Guo, N. Xue, and S. Zafeiriou, ``ArcFace: Additive Angular Margin Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2019, pp. 4690--4699. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8953658}
+\bibitem{b5} W. Liu, Y. Wen, Z. Yu, M. Li, B. Raj, and L. Song, ``SphereFace: Deep Hypersphere Embedding for Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2017, pp. 212--220. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8100196}
+\bibitem{b6} H. Wang, Y. Wang, Z. Zhou, X. Ji, D. Gong, J. Zhou, Z. Li, and W. Liu, ``CosFace: Large Margin Cosine Loss for Deep Face Recognition,'' in \emph{Proc. IEEE Conf. Comput. Vis. Pattern Recognit.}, 2018, pp. 5265--5274. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8578650}
+\bibitem{b7} Q. Cao, L. Shen, W. Xie, O. M. Parkhi, and A. Zisserman, ``VGGFace2: A Dataset for Recognising Faces across Pose and Age,'' in \emph{Proc. IEEE Int. Conf. Autom. Face Gesture Recognit.}, 2018, pp. 67--74. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8373813}
+\end{thebibliography}
+
+\end{document}
